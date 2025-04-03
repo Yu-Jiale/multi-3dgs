@@ -74,19 +74,19 @@ def download_and_extract(url: str, download_path: Path, extract_path: Path) -> N
     download_path.parent.mkdir(parents=True, exist_ok=True)
     extract_path.mkdir(parents=True, exist_ok=True)
 
-    # download
-    download_command = [
-        "curl",
-        "-L",
-        "-o",
-        str(download_path),
-        url,
-    ]
-    try:
-        subprocess.run(download_command, check=True)
-        print("File file downloaded succesfully.")
-    except subprocess.CalledProcessError as e:
-        print(f"Error downloading file: {e}")
+    # # download
+    # download_command = [
+    #     "curl",
+    #     "-L",
+    #     "-o",
+    #     str(download_path),
+    #     url,
+    # ]
+    # try:
+    #     subprocess.run(download_command, check=True)
+    #     print("File file downloaded succesfully.")
+    # except subprocess.CalledProcessError as e:
+    #     print(f"Error downloading file: {e}")
 
     # if .zip
     if Path(url).suffix == ".zip":

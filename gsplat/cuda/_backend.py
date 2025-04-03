@@ -17,7 +17,7 @@ from rich.console import Console
 from torch.utils.cpp_extension import _find_cuda_home  # <--- For robust CUDA detection
 from torch.utils.cpp_extension import (
     _TORCH_PATH,
-    _check_and_build_extension_h_precompiler_headers,
+    # _check_and_build_extension_h_precompiler_headers,
     _get_build_directory,
     _import_module_from_library,
     _jit_compile,
@@ -66,9 +66,9 @@ def load_extension(
         if USE_PRECOMPILED_HEADERS:
             # Using PreCompiled Header('torch/extension.h') to reduce compile time.
             # remove: remove_extension_h_precompiler_headers()
-            _check_and_build_extension_h_precompiler_headers(
-                extra_cflags, extra_include_paths
-            )
+            # _check_and_build_extension_h_precompiler_headers(
+            #     extra_cflags, extra_include_paths
+            # )
             head_file = os.path.join(_TORCH_PATH, "include", "torch", "extension.h")
             extra_cflags += ["-include", head_file, "-Winvalid-pch"]
 

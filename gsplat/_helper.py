@@ -4,7 +4,7 @@ from typing import Optional, Tuple
 import numpy as np
 import torch
 import torch.nn.functional as F
-
+import ipdb
 
 def load_test_data(
     data_path: Optional[str] = None,
@@ -24,7 +24,7 @@ def load_test_data(
     means = torch.from_numpy(data["means3d"]).float().to(device)
     colors = torch.from_numpy(data["colors"] / 255.0).float().to(device)
     C = len(viewmats)
-
+    ipdb.set_trace()
     # crop
     aabb = torch.tensor(scene_crop, device=device)
     edges = aabb[3:] - aabb[:3]

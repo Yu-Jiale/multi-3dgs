@@ -22,7 +22,7 @@ import viser
 from gsplat._helper import load_test_data
 from gsplat.distributed import cli
 from gsplat.rendering import rasterization
-
+import ipdb
 
 def main(local_rank: int, world_rank, world_size: int, args):
     torch.manual_seed(42)
@@ -115,6 +115,7 @@ def main(local_rank: int, world_rank, world_size: int, args):
             opacities.append(torch.sigmoid(ckpt["opacities"]))
             sh0.append(ckpt["sh0"])
             shN.append(ckpt["shN"])
+        
         means = torch.cat(means, dim=0)
         quats = torch.cat(quats, dim=0)
         scales = torch.cat(scales, dim=0)
