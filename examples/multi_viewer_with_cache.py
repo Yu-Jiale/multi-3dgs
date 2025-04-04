@@ -12,6 +12,7 @@ import joblib
 from gsplat.distributed import cli
 from gsplat.rendering import rasterization
 from tqdm import tqdm
+import asyncio
 
 class MultiFrameRenderer:
     def __init__(self, args):
@@ -32,8 +33,8 @@ class MultiFrameRenderer:
         self.viewer = None
         # functions
         self.key_frames = self.load_key_frames()
-        threading.Thread(target=self.async_preload_frames, daemon=True).start()
-    
+        threading.Thread(target=lambda: asyncio.run(self.async_preload_frames()), daemon=True).start()
+        self.cache_hit = 0
     
     """
     Functions for loading and managing frame data:
@@ -90,22 +91,29 @@ class MultiFrameRenderer:
         
         with self.cache_lock:
             frame_data = self.load_single_frame(current_path)
-        
+        if (self, current_path) in self.load_single_frame.cache:
+            self.cache_hit += 1
+        print(f"Cache hit: {self.cache_hit}, Current frame: {self.current_frame}")
         return {k: v.clone() for k, v in frame_data.items()}
     
-    def async_preload_frames(self):
+    async def async_preload_frames(self):
         current = self.current_frame
-        if current >= len(self.frame_paths) - 1:
-            current = 0
         print(f"Preloading frames from {current} to {current + self.fps}")
+        tasks = []
         for i in range(1, self.fps + 1):
             frame_idx = current + i
             if frame_idx >= len(self.frame_paths):
                 break
             next_path = self.frame_paths[frame_idx]
-            with self.cache_lock:
-                _ = self.load_single_frame(next_path)
-        print(f"Preloaded {current} to {current + self.fps}")
+            tasks.append(self.async_load_frame(next_path))
+        await asyncio.gather(*tasks)
+        print(f"Preloaded frames from {current} to {current + self.fps}")
+
+    async def async_load_frame(self, path):
+        frame_data = await asyncio.to_thread(self.load_single_frame, path)
+        with self.cache_lock:
+            if path not in self.load_single_frame.cache:
+                self.load_single_frame.cache[path] = frame_data
     
     
     """
@@ -175,7 +183,7 @@ class MultiFrameRenderer:
             if current_time < target_time:
                 time.sleep(target_time - current_time)
             last_time = target_time
-            
+            print(f"Playing frame {self.current_frame}")
             if self.current_frame < len(self.frame_paths)-1:
                 self.current_frame += 1
                 self.gui_elements['time_slider'].value = self.current_frame
@@ -191,9 +199,11 @@ def main(local_rank: int, world_rank, world_size: int, args):
     server = viser.ViserServer(port=args.port, verbose=False)
     renderer.create_gui(server)
     
+    @timer
     @torch.no_grad()
     def viewer_render_fn(camera_state: nerfview.CameraState, img_wh: Tuple[int, int]):
         frame_data = renderer.get_current_frame_data()
+        # print(f"Rendering frame {renderer.current_frame}")
         width, height = img_wh
         c2w = torch.from_numpy(camera_state.c2w).float().to(renderer.device)
         K = torch.from_numpy(camera_state.get_K(img_wh)).float().to(renderer.device)
